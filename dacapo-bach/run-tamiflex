@@ -1,0 +1,41 @@
+#!/bin/bash
+
+#  Copyright (c) 2010 Eric Bodden.
+#  All rights reserved. This program and the accompanying materials
+#  are made available under the terms of the Eclipse Public License v1.0
+#  which accompanies this distribution, and is available at
+#  http://www.eclipse.org/legal/epl-v10.html
+#
+#  Contributors:
+#      Eric Bodden - initial API and implementation
+#      George Kastrinis - modifications
+
+JAVA=java
+POA=../poa.jar
+POA_PROPERTIES=../poa.properties
+USER_POA_PROPERTIES=$HOME/.tamiflex/poa.properties
+DACAPOJAR=dacapo-9.12-bach.jar
+
+if [ ! -e $USER_POA_PROPERTIES ] || ! diff $USER_POA_PROPERTIES $POA_PROPERTIES > /dev/null ; then
+	mkdir -p $(dirname $USER_POA_PROPERTIES)
+	cp $USER_POA_PROPERTIES ${USER_POA_PROPERTIES}.bak 2> /dev/null || true
+	cp $POA_PROPERTIES $USER_POA_PROPERTIES
+fi
+
+mkdir -p logs
+
+for BM in `${JAVA} -jar ${DACAPOJAR} -l`
+do
+	for SIZE in small default large huge
+	do
+		COMMAND="${JAVA} -cp ${DACAPOJAR} -javaagent:${POA} Harness $BM -s $SIZE ; mv out/refl.log ${BM}-tamiflex-${SIZE}.log"
+
+		echo recording run for $BM $SIZE...
+		echo $COMMAND > logs/${BM}-tamiflex-run-${SIZE}.log 2>&1
+		eval $COMMAND >> logs/${BM}-tamiflex-run-${SIZE}.log 2>&1
+
+		rm -rf out scratch
+	done
+
+	cat ${BM}-tamiflex-*.log | sort -u > ${BM}-tamiflex.log
+done
